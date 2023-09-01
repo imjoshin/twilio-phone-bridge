@@ -1,13 +1,13 @@
-from .from_linkedin import (
-    linkedin_spinmail_to_matrix,
-    linkedin_subject_to_matrix,
-    linkedin_to_matrix,
+from .from_phone import (
+    phone_spinmail_to_matrix,
+    phone_subject_to_matrix,
+    phone_to_matrix,
 )
-from .from_matrix import matrix_to_linkedin
+from .from_matrix import matrix_to_phone
 
 __all__ = (
-    "linkedin_spinmail_to_matrix",
-    "linkedin_subject_to_matrix",
-    "linkedin_to_matrix",
-    "matrix_to_linkedin",
+    "phone_spinmail_to_matrix",
+    "phone_subject_to_matrix",
+    "phone_to_matrix",
+    "matrix_to_phone",
 )

@@ -19,14 +19,14 @@ from .version import linkified_version, version
 from .web import ProvisioningAPI
 
 
-class LinkedInBridge(Bridge):
-    name = "linkedin-matrix"
-    module = "linkedin_matrix"
-    beeper_service_name = "linkedin"
-    beeper_network_name = "linkedin"
-    command = "linkedin-matrix"
-    description = "A Matrix-LinkedIn Messages puppeting bridge."
-    repo_url = "https://github.com/beeper/linkedin"
+class PhoneBridge(Bridge):
+    name = "phone-matrix"
+    module = "phone_matrix"
+    beeper_service_name = "phone"
+    beeper_network_name = "phone"
+    command = "phone-matrix"
+    description = "A Matrix-Phone Messages puppeting bridge."
+    repo_url = "https://github.com/imjoshin/twilio-phone-bridge"
     version = version
     markdown_version = linkified_version
     config_class = Config
@@ -58,7 +58,7 @@ class LinkedInBridge(Bridge):
         self.log.debug("Stopping puppet syncers")
         for puppet in Puppet.by_custom_mxid.values():
             puppet.stop()
-        self.log.debug("Stopping LinkedIn listeners")
+        self.log.debug("Stopping Phone listeners")
         User.shutdown = True
         for user in User.by_li_member_urn.values():
             user.stop_listen()
@@ -128,7 +128,7 @@ class LinkedInBridge(Bridge):
 
 
 def main():
-    LinkedInBridge().run()
+    PhoneBridge().run()
 
 
 if __name__ == "__main__":

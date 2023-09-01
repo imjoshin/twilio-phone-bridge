@@ -20,11 +20,11 @@ from .config import Config
 from .db import Puppet as DBPuppet
 
 if TYPE_CHECKING:
-    from .__main__ import LinkedInBridge
+    from .__main__ import PhoneBridge
 
 
 class Puppet(DBPuppet, BasePuppet):
-    bridge: LinkedInBridge
+    bridge: PhoneBridge
     mx: m.MatrixHandler
     config: Config
     hs_domain: str
@@ -73,7 +73,7 @@ class Puppet(DBPuppet, BasePuppet):
         self.log = self.log.getChild(str(self.li_member_urn))
 
     @classmethod
-    def init_cls(cls, bridge: "LinkedInBridge") -> AsyncIterable[Awaitable[None]]:
+    def init_cls(cls, bridge: "PhoneBridge") -> AsyncIterable[Awaitable[None]]:
         cls.bridge = bridge
         cls.config = bridge.config
         cls.loop = bridge.loop
@@ -97,7 +97,7 @@ class Puppet(DBPuppet, BasePuppet):
             server: secret.encode("utf-8")
             for server, secret in cls.config["bridge.login_shared_secret_map"].items()
         }
-        cls.login_device_name = "LinkedIn Messages Bridge"
+        cls.login_device_name = "Phone Messages Bridge"
         cls.session = aiohttp.ClientSession()
 
         return (puppet.try_start() async for puppet in Puppet.get_all_with_custom_mxid())
@@ -149,7 +149,7 @@ class Puppet(DBPuppet, BasePuppet):
         try:
             identifiers = []
             if info.mini_profile:
-                identifiers.append(f"linkedin:{info.mini_profile.public_identifier}")
+                identifiers.append(f"phone:{info.mini_profile.public_identifier}")
             await self.default_mxid_intent.beeper_update_profile(
                 {
                     "com.beeper.bridge.identifiers": identifiers,

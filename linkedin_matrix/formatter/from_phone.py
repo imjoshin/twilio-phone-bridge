@@ -11,7 +11,7 @@ from mautrix.types import Format, MessageType, TextMessageEventContent
 from .. import puppet as pu, user as u
 
 
-def linkedin_subject_to_matrix(subject: str) -> TextMessageEventContent:
+def phone_subject_to_matrix(subject: str) -> TextMessageEventContent:
     body = f"Subject: {subject}"
     return TextMessageEventContent(
         msgtype=MessageType.TEXT,
@@ -21,7 +21,7 @@ def linkedin_subject_to_matrix(subject: str) -> TextMessageEventContent:
     )
 
 
-async def linkedin_to_matrix(msg: AttributedBody) -> TextMessageEventContent:
+async def phone_to_matrix(msg: AttributedBody) -> TextMessageEventContent:
     content = TextMessageEventContent(msgtype=MessageType.TEXT, body=msg.text)
 
     segments: list[str | tuple[str, URN]] = []
@@ -83,7 +83,7 @@ async def linkedin_to_matrix(msg: AttributedBody) -> TextMessageEventContent:
     return content
 
 
-async def linkedin_spinmail_to_matrix(
+async def phone_spinmail_to_matrix(
     sp_inmail_content: SpInmailContent,
 ) -> TextMessageEventContent:
     label, body = sp_inmail_content.advertiser_label, sp_inmail_content.body

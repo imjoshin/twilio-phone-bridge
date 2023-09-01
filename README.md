@@ -1,10 +1,10 @@
-# linkedin-matrix
+# twilio-phone-bridge
 
 [![Lint, Build, and Deploy](https://github.com/beeper/linkedin/actions/workflows/deploy.yaml/badge.svg)](https://github.com/beeper/linkedin/actions/workflows/deploy.yaml)
 [![Matrix Chat](https://img.shields.io/matrix/linkedin-matrix:nevarro.space?server_fqdn=matrix.nevarro.space)](https://matrix.to/#/#linkedin-matrix:nevarro.space?via=nevarro.space&via=sumnerevans.com)
 [![Apache 2.0](https://img.shields.io/pypi/l/linkedin-matrix)](LICENSE)
 
-LinkedIn Messaging <-> Matrix bridge built using
+Phone <-> Matrix bridge built using
 [mautrix-python](https://github.com/tulir/mautrix-python) and
 [linkedin-messaging-api](https://github.com/sumnerevans/linkedin-messaging-api).
 

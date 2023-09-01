@@ -75,14 +75,14 @@ class ProvisioningAPI:
         data: dict[str, Any] = {
             "permissions": user.permission_level,
             "mxid": user.mxid,
-            "linkedin": None,
+            "phone": None,
         }
         if await user.is_logged_in() and user.client:
             user_profile = user.user_profile_cache
             if user_profile is not None:
                 self.log.debug("Cache hit on user_profile_cache")
             user_profile = user_profile or await user.client.get_user_profile()
-            data["linkedin"] = user_profile.to_dict()
+            data["phone"] = user_profile.to_dict()
 
         return web.json_response(data, headers=self._acao_headers)
 

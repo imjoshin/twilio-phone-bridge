@@ -22,11 +22,11 @@ from mautrix.types.event.reaction import ReactionEventContent
 from . import portal as po, user as u
 
 if TYPE_CHECKING:
-    from .__main__ import LinkedInBridge
+    from .__main__ import PhoneBridge
 
 
 class MatrixHandler(BaseMatrixHandler):
-    def __init__(self, bridge: "LinkedInBridge"):
+    def __init__(self, bridge: "PhoneBridge"):
         prefix, suffix = bridge.config["bridge.username_template"].format(userid=":").split(":")
         homeserver = bridge.config["homeserver.domain"]
         self.user_id_prefix = f"@{prefix}"
@@ -40,7 +40,7 @@ class MatrixHandler(BaseMatrixHandler):
             await inviter.save()
             await self.az.intent.send_notice(
                 room_id,
-                "This room has been marked as your LinkedIn Messages bridge notice room.",
+                "This room has been marked as your Phone Messages bridge notice room.",
             )
 
     async def handle_read_receipt(self, user: "u.User", portal: "po.Portal", *_):

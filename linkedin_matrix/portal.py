@@ -53,14 +53,14 @@ from . import matrix as m, puppet as p, user as u
 from .config import Config
 from .db import Message as DBMessage, Portal as DBPortal, Reaction as DBReaction
 from .formatter import (
-    linkedin_spinmail_to_matrix,
-    linkedin_subject_to_matrix,
-    linkedin_to_matrix,
-    matrix_to_linkedin,
+    phone_spinmail_to_matrix,
+    phone_subject_to_matrix,
+    phone_to_matrix,
+    matrix_to_phone,
 )
 
 if TYPE_CHECKING:
-    from .__main__ import LinkedInBridge
+    from .__main__ import PhoneBridge
 
 try:
     from PIL import Image
@@ -145,7 +145,7 @@ class Portal(DBPortal, BasePortal):
         self._backfill_leave: set[IntentAPI] | None = None
 
     @classmethod
-    def init_cls(cls, bridge: "LinkedInBridge"):
+    def init_cls(cls, bridge: "PhoneBridge"):
         BasePortal.bridge = bridge
         cls.az = bridge.az
         cls.config = bridge.config
@@ -399,7 +399,7 @@ class Portal(DBPortal, BasePortal):
             for part in [
                 mini_profile.occupation,
                 (
-                    f"https://www.linkedin.com/in/{mini_profile.public_identifier}"
+                    f"https://www.phone.com/in/{mini_profile.public_identifier}"
                     if (
                         mini_profile.public_identifier
                         and mini_profile.public_identifier != "UNKNOWN"
@@ -719,7 +719,7 @@ class Portal(DBPortal, BasePortal):
 
     @property
     def bridge_info_state_key(self) -> str:
-        return f"com.github.linkedin://linkedin/{self.li_thread_urn.id_str()}"
+        return f"com.github.phone://phone/{self.li_thread_urn.id_str()}"
 
     @property
     def bridge_info(self) -> dict[str, Any]:
@@ -727,8 +727,8 @@ class Portal(DBPortal, BasePortal):
             "bridgebot": self.az.bot_mxid,
             "creator": self.main_intent.mxid,
             "protocol": {
-                "id": "linkedin",
-                "displayname": "LinkedIn Messages",
+                "id": "phone",
+                "displayname": "Phone Messages",
                 "avatar_url": self.config["appservice.bot_avatar"],
             },
             "channel": {
@@ -878,7 +878,7 @@ class Portal(DBPortal, BasePortal):
                 if member_urn == URN("UNKNOWN"):
                     member_urn = conversation.entity_urn
                 puppet = await p.Puppet.get_by_li_member_urn(member_urn)
-                await self.handle_linkedin_message(source, puppet, message)
+                await self.handle_phone_message(source, puppet, message)
         for intent in self._backfill_leave:
             self.log.trace(f"Leaving room with {intent.mxid} post-backfill")
             await intent.leave_room(self.mxid)
@@ -980,7 +980,7 @@ class Portal(DBPortal, BasePortal):
         else:
             raise NotImplementedError(f"Messages of type {message.msgtype} are not supported.")
 
-    async def _send_linkedin_message(
+    async def _send_phone_message(
         self,
         event_id: EventID,
         sender: "u.User",
@@ -1026,8 +1026,8 @@ class Portal(DBPortal, BasePortal):
         message: TextMessageEventContent,
     ):
         assert sender.client
-        message_create = await matrix_to_linkedin(message, sender, self.main_intent, self.log)
-        await self._send_linkedin_message(
+        message_create = await matrix_to_phone(message, sender, self.main_intent, self.log)
+        await self._send_phone_message(
             event_id,
             sender,
             message_create,
@@ -1063,7 +1063,7 @@ class Portal(DBPortal, BasePortal):
 
         attachment = await sender.client.upload_media(data, message.body, message.info.mimetype)
         attachment.media_type = attachment.media_type or ""
-        await self._send_linkedin_message(
+        await self._send_phone_message(
             event_id,
             sender,
             MessageCreate(AttributedBody(), attachments=[attachment]),
@@ -1164,7 +1164,7 @@ class Portal(DBPortal, BasePortal):
 
     # endregion
 
-    # region LinkedIn event handling
+    # region Phone event handling
 
     async def _bridge_own_message_pm(
         self,
@@ -1191,7 +1191,7 @@ class Portal(DBPortal, BasePortal):
                 return False
         return True
 
-    async def handle_linkedin_message(
+    async def handle_phone_message(
         self, source: "u.User", sender: "p.Puppet", message: ConversationEvent
     ):
         try:
@@ -1204,13 +1204,13 @@ class Portal(DBPortal, BasePortal):
                 ):
                     await self._update_name(nu.new_name)
             elif (ec := message.event_content) and (me := ec.message_event) and me.recalled_at:
-                await self._handle_linkedin_message_deletion(sender, message)
+                await self._handle_phone_message_deletion(sender, message)
             elif (ec := message.event_content) and (me := ec.message_event) and me.last_edited_at:
-                await self._handle_linkedin_message_edit(source, sender, message)
+                await self._handle_phone_message_edit(source, sender, message)
             else:
-                await self._handle_linkedin_message(source, sender, message)
+                await self._handle_phone_message(source, sender, message)
         except Exception as e:
-            self.log.exception(f"Error handling LinkedIn message {message.entity_urn}: {e}")
+            self.log.exception(f"Error handling Phone message {message.entity_urn}: {e}")
 
     async def _disable_responding(self, message: str | None = None):
         levels = await self.main_intent.get_power_levels(self.mxid)
@@ -1223,7 +1223,7 @@ class Portal(DBPortal, BasePortal):
                 TextMessageEventContent(msgtype=MessageType.NOTICE, body=message),
             )
 
-    async def _convert_linkedin_message(
+    async def _convert_phone_message(
         self, source: "u.User", intent: IntentAPI, message: ConversationEvent
     ) -> list[ConvertedMessage]:
         if not message.event_content or not message.event_content.message_event:
@@ -1234,24 +1234,24 @@ class Portal(DBPortal, BasePortal):
 
         # Handle subject
         if message_event.subject:
-            content = linkedin_subject_to_matrix(message_event.subject)
+            content = phone_subject_to_matrix(message_event.subject)
             converted.append((EventType.ROOM_MESSAGE, content))
 
         # Handle attachments
         converted.extend(
-            await self._convert_linkedin_media_attachments(
+            await self._convert_phone_media_attachments(
                 source, intent, message_event.media_attachments
             )
         )
         converted.extend(
-            await self._convert_linkedin_attachments(source, intent, message_event.attachments)
+            await self._convert_phone_attachments(source, intent, message_event.attachments)
         )
 
         # Handle custom content
         if cc := message_event.custom_content:
             if cc.third_party_media:
                 converted.extend(
-                    await self._convert_linkedin_third_party_media(
+                    await self._convert_phone_third_party_media(
                         source,
                         intent,
                         cc.third_party_media,
@@ -1260,7 +1260,7 @@ class Portal(DBPortal, BasePortal):
 
             # Handle InMail message text
             if cc.sp_inmail_content:
-                content = await linkedin_spinmail_to_matrix(cc.sp_inmail_content)
+                content = await phone_spinmail_to_matrix(cc.sp_inmail_content)
                 converted.append((EventType.ROOM_MESSAGE, content))
                 await self._disable_responding()
 
@@ -1274,10 +1274,10 @@ class Portal(DBPortal, BasePortal):
                     formatted_body=message_event.attributed_body.text,
                 )
             else:
-                content = await linkedin_to_matrix(message_event.attributed_body)
+                content = await phone_to_matrix(message_event.attributed_body)
             converted.append((EventType.ROOM_MESSAGE, content))
             if message.subtype == "SPONSORED_MESSAGE":
-                await self._disable_responding("Open the LinkedIn app to respond to this message")
+                await self._disable_responding("Open the Phone app to respond to this message")
 
         # Handle shared posts
         if f := message_event.feed_update:
@@ -1306,7 +1306,7 @@ class Portal(DBPortal, BasePortal):
 
         return converted
 
-    async def _handle_linkedin_message(
+    async def _handle_phone_message(
         self, source: "u.User", sender: "p.Puppet", message: ConversationEvent
     ):
         assert self.mxid
@@ -1336,7 +1336,7 @@ class Portal(DBPortal, BasePortal):
 
         intent = sender.intent_for(self)
         if not message_exists:
-            self.log.trace("LinkedIn event content: %s", message)
+            self.log.trace("Phone event content: %s", message)
             if not self.mxid:
                 mxid = await self.create_matrix_room(source)
                 if not mxid:
@@ -1358,7 +1358,7 @@ class Portal(DBPortal, BasePortal):
 
             timestamp = message.created_at or datetime.now()
             event_ids = []
-            for event_type, content in await self._convert_linkedin_message(
+            for event_type, content in await self._convert_phone_message(
                 source, intent, message
             ):
                 event_ids.append(
@@ -1368,11 +1368,11 @@ class Portal(DBPortal, BasePortal):
                 )
             event_ids = [event_id for event_id in event_ids if event_id]
             if not event_ids:
-                self.log.warning(f"Unhandled LinkedIn message {message.entity_urn}")
+                self.log.warning(f"Unhandled Phone message {message.entity_urn}")
                 return
 
             # Save all of the messages in the database.
-            self.log.debug(f"Handled LinkedIn message {li_message_urn} -> {event_ids}")
+            self.log.debug(f"Handled Phone message {li_message_urn} -> {event_ids}")
             await DBMessage.bulk_create(
                 li_message_urn=li_message_urn,
                 li_thread_urn=self.li_thread_urn,
@@ -1405,7 +1405,7 @@ class Portal(DBPortal, BasePortal):
             await self.main_intent.redact(msg.mx_room, msg.mxid, timestamp=timestamp)
         await msg.delete()
 
-    async def _handle_linkedin_message_deletion(
+    async def _handle_phone_message_deletion(
         self,
         sender: "p.Puppet",
         message: ConversationEvent,
@@ -1418,7 +1418,7 @@ class Portal(DBPortal, BasePortal):
         ):
             await self._redact_and_delete_message(sender, db_message, message.created_at)
 
-    async def _handle_linkedin_message_edit(
+    async def _handle_phone_message_edit(
         self,
         source: "u.User",
         sender: "p.Puppet",
@@ -1430,7 +1430,7 @@ class Portal(DBPortal, BasePortal):
         assert message.event_content
         assert message.event_content.message_event
         intent = sender.intent_for(self)
-        converted = await self._convert_linkedin_message(source, intent, message)
+        converted = await self._convert_phone_message(source, intent, message)
         timestamp = message.event_content.message_event.last_edited_at or datetime.now()
 
         messages = await DBMessage.get_all_by_li_message_urn(
@@ -1459,11 +1459,11 @@ class Portal(DBPortal, BasePortal):
                 event_ids.append(event_id)
         event_ids = [event_id for event_id in event_ids if event_id]
         if not event_ids:
-            self.log.warning(f"Unhandled LinkedIn message edit {message.entity_urn}")
+            self.log.warning(f"Unhandled Phone message edit {message.entity_urn}")
             return
 
         # Save all of the messages in the database.
-        self.log.debug(f"Handled LinkedIn message edit {message.entity_urn} -> {event_ids}")
+        self.log.debug(f"Handled Phone message edit {message.entity_urn} -> {event_ids}")
         await DBMessage.bulk_create(
             li_message_urn=message.entity_urn,
             li_thread_urn=self.li_thread_urn,
@@ -1518,7 +1518,7 @@ class Portal(DBPortal, BasePortal):
 
         return mxids
 
-    async def _convert_linkedin_attachments(
+    async def _convert_phone_attachments(
         self,
         source: "u.User",
         intent: IntentAPI,
@@ -1538,7 +1538,7 @@ class Portal(DBPortal, BasePortal):
             else:
                 msgtype = MessageType.FILE
 
-            mxc, info, decryption_info = await self._reupload_linkedin_file(
+            mxc, info, decryption_info = await self._reupload_phone_file(
                 url, source, intent, encrypt=self.encrypted, find_size=True
             )
             content = MediaMessageEventContent(
@@ -1552,7 +1552,7 @@ class Portal(DBPortal, BasePortal):
 
         return converted
 
-    async def _convert_linkedin_media_attachments(
+    async def _convert_phone_media_attachments(
         self,
         source: "u.User",
         intent: IntentAPI,
@@ -1568,7 +1568,7 @@ class Portal(DBPortal, BasePortal):
                     )
                 else:
                     url = attachment.audio_metadata.url
-                    mxc, info, decryption_info = await self._reupload_linkedin_file(
+                    mxc, info, decryption_info = await self._reupload_phone_file(
                         url, source, intent, encrypt=self.encrypted
                     )
                     info["duration"] = attachment.audio_metadata.duration
@@ -1592,7 +1592,7 @@ class Portal(DBPortal, BasePortal):
 
         return converted
 
-    async def _convert_linkedin_third_party_media(
+    async def _convert_phone_third_party_media(
         self,
         source: "u.User",
         intent: IntentAPI,
@@ -1605,7 +1605,7 @@ class Portal(DBPortal, BasePortal):
             if not third_party_media.media or not third_party_media.media.gif:
                 return []
             msgtype = MessageType.IMAGE
-            mxc, info, decryption_info = await self._reupload_linkedin_file(
+            mxc, info, decryption_info = await self._reupload_phone_file(
                 third_party_media.media.gif.url,
                 source,
                 intent,
@@ -1625,7 +1625,7 @@ class Portal(DBPortal, BasePortal):
         return []
 
     @classmethod
-    async def _reupload_linkedin_file(
+    async def _reupload_phone_file(
         cls,
         url: str,
         source: "u.User",
@@ -1642,7 +1642,7 @@ class Portal(DBPortal, BasePortal):
 
         assert source.client
 
-        file_data = await source.client.download_linkedin_media(url)
+        file_data = await source.client.download_phone_media(url)
         if len(file_data) > cls.matrix.media_config.upload_size:
             raise ValueError("File not available: too large")
 
@@ -1677,7 +1677,7 @@ class Portal(DBPortal, BasePortal):
             decryption_info.url = url
         return url, info, decryption_info
 
-    async def handle_linkedin_reaction_add(
+    async def handle_phone_reaction_add(
         self, source: "u.User", sender: "p.Puppet", event: RealTimeEventStreamEvent
     ):
         if not event.event_urn or not self.li_receiver_urn or not event.reaction_summary:
@@ -1727,7 +1727,7 @@ class Portal(DBPortal, BasePortal):
         ).insert()
         self._dedup.remove(dedup_id)
 
-    async def handle_linkedin_reaction_remove(
+    async def handle_phone_reaction_remove(
         self, source: "u.User", sender: "p.Puppet", event: RealTimeEventStreamEvent
     ):
         if (
@@ -1750,7 +1750,7 @@ class Portal(DBPortal, BasePortal):
                 await self.main_intent.redact(reaction.mx_room, reaction.mxid)
             await reaction.delete()
 
-    async def handle_linkedin_conversation_read(self, source: "u.User"):
+    async def handle_phone_conversation_read(self, source: "u.User"):
         most_recent = await DBMessage.get_most_recent(self.li_thread_urn, self.li_receiver_urn)
         if not most_recent:
             return
@@ -1758,7 +1758,7 @@ class Portal(DBPortal, BasePortal):
         if puppet and puppet.is_real_user:
             await puppet.intent.mark_read(self.mxid, most_recent.mxid)
 
-    async def handle_linkedin_seen_receipt(
+    async def handle_phone_seen_receipt(
         self, source: "u.User", sender: "p.Puppet", event: RealTimeEventStreamEvent
     ):
         if messages := await DBMessage.get_all_by_li_message_urn(
@@ -1767,7 +1767,7 @@ class Portal(DBPortal, BasePortal):
             messages.sort(key=lambda m: m.index)
             await sender.intent.mark_read(self.mxid, messages[-1].mxid)
 
-    async def handle_linkedin_typing(self, sender: "p.Puppet"):
+    async def handle_phone_typing(self, sender: "p.Puppet"):
         await sender.intent.set_typing(self.mxid)
 
     # endregion

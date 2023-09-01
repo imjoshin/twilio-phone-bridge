@@ -28,9 +28,9 @@ from .config import Config
 from .db import User as DBUser
 
 if TYPE_CHECKING:
-    from .__main__ import LinkedInBridge
+    from .__main__ import PhoneBridge
 
-METRIC_CONNECTED = Gauge("bridge_connected", "Bridge users connected to LinkedIn")
+METRIC_CONNECTED = Gauge("bridge_connected", "Bridge users connected to Phone")
 METRIC_LOGGED_IN = Gauge("bridge_logged_in", "Users logged into the bridge")
 METRIC_SYNC_THREADS = Summary("bridge_sync_threads", "calls to sync_threads")
 
@@ -93,7 +93,7 @@ class User(DBUser, BaseUser):
         self.listen_task = None
 
     @classmethod
-    def init_cls(cls, bridge: LinkedInBridge) -> AsyncIterable[Awaitable[bool]]:
+    def init_cls(cls, bridge: PhoneBridge) -> AsyncIterable[Awaitable[bool]]:
         cls.bridge = bridge
         cls.config = bridge.config
         cls.az = bridge.az
@@ -501,7 +501,7 @@ class User(DBUser, BaseUser):
         else:
             # This most likely means that the bridge is being stopped/restarted. But,
             # occasionally, the user gets logged out. In these cases, we want to reset
-            # _is_logged_in so the next whoami call does a full call out to LinkedIn to
+            # _is_logged_in so the next whoami call does a full call out to Phone to
             # detect whether the user is logged in.
             self.log.warn("No client, not logged in, or shutdown. Not reconnecting.")
             if (
@@ -535,11 +535,11 @@ class User(DBUser, BaseUser):
             return
         if not self.listener_event_handlers_created:
             self.log.info("Adding listeners to client")
-            self.client.add_event_listener("ALL_EVENTS", self.handle_linkedin_stream_event)
-            self.client.add_event_listener("event", self.handle_linkedin_event)
-            self.client.add_event_listener("reactionAdded", self.handle_linkedin_reaction_added)
-            self.client.add_event_listener("action", self.handle_linkedin_action)
-            self.client.add_event_listener("fromEntity", self.handle_linkedin_from_entity)
+            self.client.add_event_listener("ALL_EVENTS", self.handle_phone_stream_event)
+            self.client.add_event_listener("event", self.handle_phone_event)
+            self.client.add_event_listener("reactionAdded", self.handle_phone_reaction_added)
+            self.client.add_event_listener("action", self.handle_phone_action)
+            self.client.add_event_listener("fromEntity", self.handle_phone_from_entity)
             self.listener_event_handlers_created = True
         try:
             await self.client.start_listener()
@@ -570,11 +570,11 @@ class User(DBUser, BaseUser):
         else:
             self.log.trace("Event received on event stream, but not sending CONNECTED")
 
-    async def handle_linkedin_stream_event(self, _):
+    async def handle_phone_stream_event(self, _):
         self._track_metric(METRIC_CONNECTED, True)
         await self._push_connected_state()
 
-    async def handle_linkedin_event(self, event: RealTimeEventStreamEvent):
+    async def handle_phone_event(self, event: RealTimeEventStreamEvent):
         assert self.client
         assert isinstance(event.event, ConversationEvent)
         assert event.event.entity_urn
@@ -608,9 +608,9 @@ class User(DBUser, BaseUser):
         puppet = await pu.Puppet.get_by_li_member_urn(sender_urn)
 
         await portal.backfill_lock.wait(message_urn)
-        await portal.handle_linkedin_message(self, puppet, event.event)
+        await portal.handle_phone_message(self, puppet, event.event)
 
-    async def handle_linkedin_reaction_added(self, event: RealTimeEventStreamEvent):
+    async def handle_phone_reaction_added(self, event: RealTimeEventStreamEvent):
         assert isinstance(event.reaction_summary, ReactionSummary)
         assert isinstance(event.reaction_added, bool)
         assert isinstance(event.actor_mini_profile_urn, URN)
@@ -636,11 +636,11 @@ class User(DBUser, BaseUser):
 
         await portal.backfill_lock.wait(message_urn)
         if event.reaction_added:
-            await portal.handle_linkedin_reaction_add(self, puppet, event)
+            await portal.handle_phone_reaction_add(self, puppet, event)
         else:
-            await portal.handle_linkedin_reaction_remove(self, puppet, event)
+            await portal.handle_phone_reaction_remove(self, puppet, event)
 
-    async def handle_linkedin_action(self, event: RealTimeEventStreamEvent):
+    async def handle_phone_action(self, event: RealTimeEventStreamEvent):
         if event.action != "UPDATE":
             return
         if (
@@ -652,22 +652,22 @@ class User(DBUser, BaseUser):
             if portal := await po.Portal.get_by_li_thread_urn(
                 conversation.entity_urn, li_receiver_urn=self.li_member_urn, create=False
             ):
-                await portal.handle_linkedin_conversation_read(self)
+                await portal.handle_phone_conversation_read(self)
 
-    async def handle_linkedin_from_entity(self, event: RealTimeEventStreamEvent):
+    async def handle_phone_from_entity(self, event: RealTimeEventStreamEvent):
         if seen_receipt := event.seen_receipt:
             conversation_urn = URN(seen_receipt.event_urn.id_parts[0])
             if portal := await po.Portal.get_by_li_thread_urn(
                 conversation_urn, li_receiver_urn=self.li_member_urn, create=False
             ):
                 puppet = await pu.Puppet.get_by_li_member_urn(event.from_entity)
-                await portal.handle_linkedin_seen_receipt(self, puppet, event)
+                await portal.handle_phone_seen_receipt(self, puppet, event)
 
         if isinstance(event.conversation, str):
             if portal := await po.Portal.get_by_li_thread_urn(
                 URN(event.conversation), li_receiver_urn=self.li_member_urn, create=False
             ):
                 puppet = await pu.Puppet.get_by_li_member_urn(event.from_entity)
-                await portal.handle_linkedin_typing(puppet)
+                await portal.handle_phone_typing(puppet)
 
     # endregion

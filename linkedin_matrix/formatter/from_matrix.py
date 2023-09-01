@@ -64,7 +64,7 @@ class MatrixParser(BaseMatrixParser[LinkedInFormatString]):
         return cast(LinkedInFormatString, await super().parse(data))
 
 
-async def matrix_to_linkedin(
+async def matrix_to_phone(
     content: TextMessageEventContent,
     sender: "u.User",
     intent: IntentAPI,
