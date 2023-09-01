@@ -47,7 +47,7 @@ def check_file(path: Path) -> bool:
 
 
 valid = True
-for path in Path("linkedin_matrix").glob("**/*.py"):
+for path in Path("phone_matrix").glob("**/*.py"):
     valid &= check_file(path)
 
 for path in Path("tests").glob("**/*.py"):
@@ -56,13 +56,13 @@ for path in Path("tests").glob("**/*.py"):
 """
 Checks that the version in the CHANGELOG is the same as the version in ``__init__.py``.
 """
-with open(Path("linkedin_matrix/__init__.py")) as f:
+with open(Path("phone_matrix/__init__.py")) as f:
     for line in f:
         if line.startswith("__version__"):
             version = eval(line.split()[-1])
             break
     else:  # nobreak
-        raise AssertionError("No version in linkedin_matrix/__init__.py")
+        raise AssertionError("No version in phone_matrix/__init__.py")
 
 with open(Path("CHANGELOG.md")) as f:
     assert f.readline().strip() == f"# v{version}", "Version mismatch: CHANGELOG"

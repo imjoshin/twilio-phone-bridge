@@ -11,7 +11,7 @@ function fixperms {
 cd /opt/linkedin-matrix
 
 if [ ! -f $CONFIG_PATH ]; then
-	cp linkedin_matrix/example-config.yaml $CONFIG_PATH
+	cp phone_matrix/example-config.yaml $CONFIG_PATH
 	sed -i "s#hostname: localhost#hostname: 0.0.0.0#" $CONFIG_PATH
 	echo "Didn't find a config file."
 	echo "Copied default config file to $CONFIG_PATH"
@@ -22,10 +22,10 @@ if [ ! -f $CONFIG_PATH ]; then
 fi
 
 if [ ! -f $REGISTRATION_PATH ]; then
-	python3 -m linkedin_matrix -g -c $CONFIG_PATH -r $REGISTRATION_PATH
+	python3 -m phone_matrix -g -c $CONFIG_PATH -r $REGISTRATION_PATH
 	fixperms
 	exit
 fi
 
 fixperms
-exec su-exec $UID:$GID python3 -m linkedin_matrix -c $CONFIG_PATH
+exec su-exec $UID:$GID python3 -m phone_matrix -c $CONFIG_PATH

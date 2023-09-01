@@ -12,7 +12,7 @@ synapse-files
 # Config files
 *.yaml
 !.pre-commit-config.yaml
-!linkedin_matrix/example-config.yaml
+!phone_matrix/example-config.yaml
 !.github/workflows/*
 
 # Created by https://www.toptal.com/developers/gitignore/api/python

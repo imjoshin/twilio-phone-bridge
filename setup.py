@@ -1,6 +1,6 @@
 import setuptools
 
-from linkedin_matrix.get_version import git_tag, git_revision, version, linkified_version
+from phone_matrix.get_version import git_tag, git_revision, version, linkified_version
 
 try:
     long_desc = open("README.md").read()
@@ -23,7 +23,7 @@ with open("optional-requirements.txt") as reqs:
 
 extras_require["all"] = list({dep for deps in extras_require.values() for dep in deps})
 
-with open("linkedin_matrix/version.py", "w") as version_file:
+with open("phone_matrix/version.py", "w") as version_file:
     version_file.write(f"""# Generated in setup.py
 
 git_tag = {git_tag!r}
@@ -33,7 +33,7 @@ linkified_version = {linkified_version!r}
 """)
 
 setuptools.setup(
-    name="linkedin_matrix",
+    name="phone_matrix",
     version=version,
     url="https://github.com/beeper/linkedin",
     project_urls={
@@ -66,9 +66,9 @@ setuptools.setup(
         "Programming Language :: Python :: 3.10",
     ],
     package_data={
-        "linkedin_matrix": ["example-config.yaml"],
+        "phone_matrix": ["example-config.yaml"],
     },
     data_files=[
-        (".", ["linkedin_matrix/example-config.yaml"]),
+        (".", ["phone_matrix/example-config.yaml"]),
     ],
 )

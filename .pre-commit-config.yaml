@@ -13,14 +13,14 @@ repos:
     rev: 23.3.0
     hooks:
       - id: black
-        files: ^(cicd|linkedin_matrix)/.*\.pyi?$
+        files: ^(cicd|phone_matrix)/.*\.pyi?$
 
   # isort
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
     hooks:
       - id: isort
-        files: ^(cicd|linkedin_matrix)/.*\.pyi?$
+        files: ^(cicd|phone_matrix)/.*\.pyi?$
 
   # flake8
   - repo: https://github.com/pycqa/flake8
