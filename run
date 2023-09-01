@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m phone_matrix -c phone_matrix/config.yaml
